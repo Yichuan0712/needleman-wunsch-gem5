@@ -94,7 +94,7 @@ board = SimpleBoard(
 )
 
 # --- 4. Workload Setup ---
-matrix_size = str(_get("matrix_size", 512))
+sequence_length = str(_get("sequence_length", _get("matrix_size", 512)))  # matrix_size kept for backward compat
 block_size = str(_get("block_size", 1))
 match_score = str(_get("match_score", 2))
 mismatch_penalty = str(_get("mismatch_penalty", -1))
@@ -105,7 +105,7 @@ binary_path = Path(_get("binary_path", "./nw_bench_x86")).resolve()
 
 board.set_se_binary_workload(
     binary=BinaryResource(local_path=str(binary_path)),
-    arguments=[matrix_size, block_size, match_score, mismatch_penalty, gap_penalty, random_seed],
+    arguments=[sequence_length, block_size, match_score, mismatch_penalty, gap_penalty, random_seed],
 )
 
 # --- 5. Simulation Execution ---
@@ -116,6 +116,6 @@ outdir = m5.options.outdir
 simulator.add_text_stats_output(os.path.join(outdir, "stats.txt"))
 simulator.add_json_stats_output(os.path.join(outdir, "stats.json"))
 
-print(f"Starting Simulation with N={matrix_size} and BlockSize={block_size}...")
+print(f"Starting Simulation with N={sequence_length} and BlockSize={block_size}...")
 simulator.run()
 print(f"Simulation completed. Check results in: {outdir}")

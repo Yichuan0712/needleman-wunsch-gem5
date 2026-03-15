@@ -16,15 +16,15 @@ cd /workspace/demo/programs
 gcc -o nw_bench_x86 nw_bench.c
 ```
 
-On Windows, the output will be `nw_bench_x86.exe`. Update `binary_path` in `run_nw_config.json` if needed.
+On Windows, the output will be `nw_bench_x86.exe`. Update `binary_path` in `run_nw_config.json` if needed. After compiling, either copy `nw_bench_x86` to the directory containing `run_nw.py`, or set `binary_path` to the correct path (e.g. `demo/programs/nw_bench_x86` when running from project root).
 
 ### 2. Configure parameters
 
-Edit `run_nw_config.json` in the same directory as `run_nw.py`. All parameters are optional (defaults shown):
+Edit `run_nw_config.json` in the same directory as `run_nw.py` (i.e. `demo/x86/board_configurations/`). All parameters are optional (defaults shown):
 
 ```json
 {
-  "matrix_size": 512,
+  "sequence_length": 512,
   "block_size": 1,
   "binary_path": "./nw_bench_x86",
   "clk_freq": "3GHz",
@@ -52,9 +52,9 @@ Edit `run_nw_config.json` in the same directory as `run_nw.py`. All parameters a
 
 | Parameter | Description | Range / Examples |
 |-----------|-------------|------------------|
-| `matrix_size` | Sequence length (N). Matrix is (N+1)×(N+1). | 1–65536 |
-| `block_size` | Tile size for cache blocking. 1 = row-by-row (cache-unfriendly). 8–64 = cache-friendly. | 1 to matrix_size |
-| `binary_path` | Path to nw_bench_x86 executable. | Relative to cwd or absolute |
+| `sequence_length` | Length of each sequence (number of bases). Both seq1 and seq2 have this length. DP matrix is (N+1)×(N+1). | 1–65536 |
+| `block_size` | Tile size for cache blocking. 1 = row-by-row (cache-unfriendly). 8–64 = cache-friendly. | 1 to sequence_length |
+| `binary_path` | Path to nw_bench_x86 executable (relative to cwd when gem5 runs). | e.g. `./nw_bench_x86` or `demo/programs/nw_bench_x86` |
 | `clk_freq` | CPU clock frequency. | 1GHz, 2GHz, 3GHz |
 | `l1d_size` | L1 data cache size. | 4kB, 8kB, 32kB |
 | `l1i_size` | L1 instruction cache size. | 4kB, 8kB, 32kB |
@@ -76,7 +76,7 @@ Edit `run_nw_config.json` in the same directory as `run_nw.py`. All parameters a
 
 ### 3. Run the simulation
 
-Ensure `nw_bench_x86` (or `nw_bench_x86.exe` on Windows) is in the same directory as `run_nw.py`, then:
+Ensure `binary_path` in `run_nw_config.json` correctly points to `nw_bench_x86` (see step 1), then:
 
 ```bash
 /path/to/gem5.opt /path/to/run_nw.py [run_nw_config.json]
@@ -98,3 +98,28 @@ After the simulation completes, check the output directory (printed at the end) 
 
 - `stats.txt` / `stats.json` — performance statistics
 - `inst_trace.csv` — instruction execution trace
+
+### 5. Compute metrics
+
+To compute CPI, MPKI, branch misprediction rate, and stall indicators from stats:
+
+```bash
+python compute_metrics.py [m5out]
+```
+
+Default path is `m5out`. Output includes: CPI, MPKI (L1I/L1D/L2), branch mispred rate, 0-fetch cycles fraction, idle fraction, cache blocked fraction.
+
+**Metric formulas and stats fields:**
+
+| Metric | Formula | Stats fields (from stats.txt / stats.json) |
+|--------|---------|-------------------------------------------|
+| **CPI** | numCycles / simInsts | `numCycles` = simTicks / (simFreq ÷ clk_freq). Use `simTicks`, `simFreq`, `simInsts`. clk_freq from run_nw_config.json. |
+| **MPKI (L1I)** | misses × 1000 / simInsts | `board.cache_hierarchy.l1i-cache-0.demandMisses::total` (or `prefetcher.demandMshrMisses`) |
+| **MPKI (L1D)** | misses × 1000 / simInsts | `board.cache_hierarchy.l1d-cache-0.demandMisses::total` (or `prefetcher.demandMshrMisses`) |
+| **MPKI (L2)** | misses × 1000 / simInsts | `board.cache_hierarchy.l2-cache-0.demandMisses::total` (or `demandMshrMisses::total`) |
+| **Branch mispred rate** | mispredicted / committed_branches | `board.processor.cores.core.iew.branchMispredicts` ÷ `commitStats0.committedControl::IsControl` |
+| **0-fetch cycles frac** | nisnDist::0 / numCycles | `board.processor.cores.core.fetch.nisnDist::0` (proxy for 0-issue; gem5 has no numIssuedDist) |
+| **Idle cycles frac** | idleCycles / numCycles | Sum of `decode.idleCycles` + `rename.idleCycles` + `iew.idleCycles` (stages may overlap) |
+| **Cache blocked frac** | sum(blockedCycles) / numCycles | Sum of `l1d-cache-0.blockedCycles::no_mshrs` + `::no_targets`, same for l1i and l2 |
+
+**Note:** CPI < 1 is normal for out-of-order superscalar CPUs (multiple instructions per cycle). IPC = 1/CPI.

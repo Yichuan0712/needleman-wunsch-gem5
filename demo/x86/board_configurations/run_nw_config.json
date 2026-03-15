@@ -1,5 +1,5 @@
 {
-  "matrix_size": 128,
+  "sequence_length": 128,
   "block_size": 1,
   "binary_path": "./nw_bench_x86",
   "clk_freq": "3GHz",
