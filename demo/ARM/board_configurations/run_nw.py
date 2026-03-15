@@ -10,7 +10,7 @@ from gem5.isas import ISA
 from gem5.components.processors.base_cpu_core import BaseCPUCore
 from gem5.components.processors.base_cpu_processor import BaseCPUProcessor
 
-from m5.objects import X86O3CPU, TournamentBP, InstCsvTrace
+from m5.objects import ArmO3CPU, TournamentBP, InstCsvTrace
 
 import m5
 import json
@@ -29,10 +29,10 @@ with open(config_path, "r", encoding="utf-8") as f:
 def _get(key, default):
     return config.get(key, default)
 
-# --- 2. Custom Out-of-Order (OoO) Core Configuration ---
+# --- 2. Custom Out-of-Order (OoO) Core Configuration (ARM) ---
 class MyOutOfOrderCore(BaseCPUCore):
     def __init__(self, width, rob_size, num_int_regs, num_fp_regs, trace_cfg):
-        core = X86O3CPU()
+        core = ArmO3CPU()
         core.fetchWidth = width
         core.decodeWidth = width
         core.renameWidth = width
@@ -53,7 +53,7 @@ class MyOutOfOrderCore(BaseCPUCore):
         inst_trace.stop_after_inst = trace_cfg.get("trace_stop_after_inst", 0)
         core.probeListener = inst_trace
 
-        super().__init__(core, ISA.X86)
+        super().__init__(core, ISA.ARM)
 
 class MyOutOfOrderProcessor(BaseCPUProcessor):
     def __init__(self, width, rob_size, num_int_regs, num_fp_regs, trace_cfg):
@@ -102,7 +102,7 @@ mismatch_penalty = str(_get("mismatch_penalty", -1))
 gap_penalty = str(_get("gap_penalty", -2))
 random_seed = str(_get("random_seed", 42))
 
-binary_path = Path(_get("binary_path", "./nw_bench_x86")).resolve()
+binary_path = Path(_get("binary_path", "./nw_bench_arm")).resolve()
 
 board.set_se_binary_workload(
     binary=BinaryResource(local_path=str(binary_path)),
@@ -117,6 +117,6 @@ outdir = m5.options.outdir
 simulator.add_text_stats_output(os.path.join(outdir, "stats.txt"))
 simulator.add_json_stats_output(os.path.join(outdir, "stats.json"))
 
-print(f"Starting Simulation with N={sequence_length} and BlockSize={block_size}...")
+print(f"Starting Simulation (ARM) with N={sequence_length} and BlockSize={block_size}...")
 simulator.run()
 print(f"Simulation completed. Check results in: {outdir}")

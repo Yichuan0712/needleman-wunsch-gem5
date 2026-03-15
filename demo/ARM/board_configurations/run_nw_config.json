@@ -1,0 +1,23 @@
+{
+  "sequence_length": 128,
+  "block_size": 1,
+  "binary_path": "./nw_bench_arm",
+  "clk_freq": "3GHz",
+  "l1d_size": "4kB",
+  "l1i_size": "4kB",
+  "l2_size": "16kB",
+  "memory_size": "4GB",
+  "cpu_width": 8,
+  "rob_size": 192,
+  "num_int_regs": 256,
+  "num_fp_regs": 256,
+  "trace_file": "inst_trace.csv",
+  "trace_fetch": true,
+  "trace_mem": true,
+  "trace_start_after_inst": 0,
+  "trace_stop_after_inst": 0,
+  "match_score": 2,
+  "mismatch_penalty": -1,
+  "gap_penalty": -2,
+  "random_seed": 42
+}

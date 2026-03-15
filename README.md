@@ -5,26 +5,37 @@ A gem5 microarchitecture simulation project for the Needleman-Wunsch sequence al
 ## Prerequisites
 
 - [gem5](https://www.gem5.org/) simulator
-- GCC (for compiling the C benchmark)
+- GCC (for x86) or ARM cross-compiler (for ARM, e.g. `aarch64-linux-gnu-gcc`)
 
 ## Usage
 
 ### 1. Compile the benchmark
 
+**X86:**
 ```bash
-cd /workspace/demo/programs
+cd demo/programs
 gcc -o nw_bench_x86 nw_bench.c
 ```
 
-On Windows, the output will be `nw_bench_x86.exe`. Update `binary_path` in `run_nw_config.json` if needed. After compiling, either copy `nw_bench_x86` to the directory containing `run_nw.py`, or set `binary_path` to the correct path (e.g. `demo/programs/nw_bench_x86` when running from project root).
+**ARM:**
+```bash
+cd demo/programs
+aarch64-linux-gnu-gcc -static -o nw_bench_arm nw_bench.c
+```
+
+On Windows, x86 output will be `nw_bench_x86.exe`. Update `binary_path` in `run_nw_config.json` if needed. After compiling, either copy the binary to the directory containing `run_nw.py`, or set `binary_path` to the correct path (e.g. `demo/programs/nw_bench_x86` or `demo/programs/nw_bench_arm` when running from project root).
 
 ### 2. Configure parameters
 
-Edit `run_nw_config.json` in the same directory as `run_nw.py` (i.e. `demo/x86/board_configurations/`). All parameters are optional (defaults shown):
+Edit `run_nw_config.json` in the same directory as `run_nw.py`:
+- **X86:** `demo/x86/board_configurations/`
+- **ARM:** `demo/ARM/board_configurations/`
+
+All parameters are optional (defaults shown). For ARM, `binary_path` defaults to `./nw_bench_arm`.
 
 ```json
 {
-  "sequence_length": 512,
+  "sequence_length": 128,
   "block_size": 1,
   "binary_path": "./nw_bench_x86",
   "clk_freq": "3GHz",
@@ -52,9 +63,9 @@ Edit `run_nw_config.json` in the same directory as `run_nw.py` (i.e. `demo/x86/b
 
 | Parameter | Description | Range / Examples |
 |-----------|-------------|------------------|
-| `sequence_length` | Length of each sequence (number of bases). Both seq1 and seq2 have this length. DP matrix is (N+1)×(N+1). | 1–65536 |
+| `sequence_length` | Length of each sequence (number of bases). Both seq1 and seq2 have this length. DP matrix is (N+1)×(N+1). | 1–256 (larger = slower sim) |
 | `block_size` | Tile size for cache blocking. 1 = row-by-row (cache-unfriendly). 8–64 = cache-friendly. | 1 to sequence_length |
-| `binary_path` | Path to nw_bench_x86 executable (relative to cwd when gem5 runs). | e.g. `./nw_bench_x86` or `demo/programs/nw_bench_x86` |
+| `binary_path` | Path to nw_bench executable (relative to cwd when gem5 runs). | e.g. `./nw_bench_x86`, `./nw_bench_arm`, or `demo/programs/nw_bench_x86` |
 | `clk_freq` | CPU clock frequency. | 1GHz, 2GHz, 3GHz |
 | `l1d_size` | L1 data cache size. | 4kB, 8kB, 32kB |
 | `l1i_size` | L1 instruction cache size. | 4kB, 8kB, 32kB |
@@ -76,7 +87,7 @@ Edit `run_nw_config.json` in the same directory as `run_nw.py` (i.e. `demo/x86/b
 
 ### 3. Run the simulation
 
-Ensure `binary_path` in `run_nw_config.json` correctly points to `nw_bench_x86` (see step 1), then:
+Ensure `binary_path` in `run_nw_config.json` correctly points to the compiled binary (see step 1), then:
 
 ```bash
 /path/to/gem5.opt /path/to/run_nw.py [run_nw_config.json]
@@ -85,11 +96,17 @@ Ensure `binary_path` in `run_nw_config.json` correctly points to `nw_bench_x86` 
 **Example (adjust paths for your environment):**
 
 ```bash
-# Default: uses run_nw_config.json next to run_nw.py
-/workspace/gem5_base/build/X86/gem5.opt /workspace/demo/x86/board_configurations/run_nw.py
+# X86: Default config
+gem5_base/build/X86/gem5.opt demo/x86/board_configurations/run_nw.py
 
-# Custom config file
-/workspace/gem5_base/build/X86/gem5.opt /workspace/demo/x86/board_configurations/run_nw.py /workspace/demo/x86/board_configurations/run_nw_config.json
+# X86: Custom config file
+gem5_base/build/X86/gem5.opt demo/x86/board_configurations/run_nw.py demo/x86/board_configurations/run_nw_config.json
+
+# ARM: Default config
+gem5_base/build/ARM/gem5.opt demo/ARM/board_configurations/run_nw.py
+
+# ARM: Custom config file
+gem5_base/build/ARM/gem5.opt demo/ARM/board_configurations/run_nw.py demo/ARM/board_configurations/run_nw_config.json
 ```
 
 ### 4. Check results
