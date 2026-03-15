@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MATCH_SCORE 2
-#define MISMATCH_PENALTY -1
-#define GAP_PENALTY -2
+#define DEFAULT_MATCH_SCORE 2
+#define DEFAULT_MISMATCH_PENALTY -1
+#define DEFAULT_GAP_PENALTY -2
 
 static inline int max3(int a, int b, int c)
 {
@@ -17,7 +17,8 @@ static inline int max3(int a, int b, int c)
 }
 
 // Tiled NW Alignment
-void nw_align_tiled(int n, const char *seq1, const char *seq2, int block_size)
+void nw_align_tiled(int n, const char *seq1, const char *seq2, int block_size,
+                    int match_score, int mismatch_penalty, int gap_penalty)
 {
     int rows = n + 1;
     int cols = n + 1;
@@ -26,9 +27,9 @@ void nw_align_tiled(int n, const char *seq1, const char *seq2, int block_size)
         return;
 
     for (int i = 0; i < rows; i++)
-        score[i * cols] = i * GAP_PENALTY;
+        score[i * cols] = i * gap_penalty;
     for (int j = 0; j < cols; j++)
-        score[j] = j * GAP_PENALTY;
+        score[j] = j * gap_penalty;
 
     // Outer loops: Iterate over tiles
     for (int bi = 1; bi < rows; bi += block_size)
@@ -45,9 +46,9 @@ void nw_align_tiled(int n, const char *seq1, const char *seq2, int block_size)
                 for (int j = bj; j < j_limit; j++)
                 {
                     int match = score[(i - 1) * cols + (j - 1)] +
-                                (seq1[i - 1] == seq2[j - 1] ? MATCH_SCORE : MISMATCH_PENALTY);
-                    int delete = score[(i - 1) * cols + j] + GAP_PENALTY;
-                    int insert = score[i * cols + (j - 1)] + GAP_PENALTY;
+                                (seq1[i - 1] == seq2[j - 1] ? match_score : mismatch_penalty);
+                    int delete = score[(i - 1) * cols + j] + gap_penalty;
+                    int insert = score[i * cols + (j - 1)] + gap_penalty;
                     score[i * cols + j] = max3(match, delete, insert);
                 }
             }
@@ -60,24 +61,36 @@ void nw_align_tiled(int n, const char *seq1, const char *seq2, int block_size)
 
 int main(int argc, char *argv[])
 {
-    int n = 512;        // Matrix size
-    int block_size = 1; // Default: Painful mode (Row-by-Row)
+    int n = 128;
+    int block_size = 1;
+    int match_score = DEFAULT_MATCH_SCORE;
+    int mismatch_penalty = DEFAULT_MISMATCH_PENALTY;
+    int gap_penalty = DEFAULT_GAP_PENALTY;
+    unsigned int random_seed = 42;
 
     if (argc > 1)
         n = atoi(argv[1]);
     if (argc > 2)
         block_size = atoi(argv[2]);
+    if (argc > 3)
+        match_score = atoi(argv[3]);
+    if (argc > 4)
+        mismatch_penalty = atoi(argv[4]);
+    if (argc > 5)
+        gap_penalty = atoi(argv[5]);
+    if (argc > 6)
+        random_seed = (unsigned int)atoi(argv[6]);
 
     char *s1 = (char *)malloc(n);
     char *s2 = (char *)malloc(n);
-    srand(42);
+    srand(random_seed);
     for (int i = 0; i < n; i++)
     {
         s1[i] = "ATCG"[rand() % 4];
         s2[i] = "ATCG"[rand() % 4];
     }
 
-    nw_align_tiled(n, s1, s2, block_size);
+    nw_align_tiled(n, s1, s2, block_size, match_score, mismatch_penalty, gap_penalty);
 
     free(s1);
     free(s2);
