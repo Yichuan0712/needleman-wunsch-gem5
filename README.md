@@ -2,11 +2,6 @@
 
 A gem5 microarchitecture simulation project for the Needleman-Wunsch sequence alignment algorithm.
 
-## Prerequisites
-
-- [gem5](https://www.gem5.org/) simulator
-- GCC
-
 ## Usage
 
 Assume project root is `/workspace` and gem5 is at `/workspace/gem5_base`. All commands use full paths; no `cd` required. Adjust paths as needed.
